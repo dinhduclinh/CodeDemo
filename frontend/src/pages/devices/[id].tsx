@@ -25,7 +25,7 @@ export default function DeviceDetailPage() {
             try {
                 setLoading(true);
                 setError(null);
-                const res = await fetch(`http://localhost:3000/api/devices/${id}`);
+                const res = await fetch(`http://localhost:9999/api/devices/${id}`);
                 if (!res.ok) throw new Error(`Failed to fetch device: ${res.status}`);
                 const data = await res.json();
                 const item: Device | undefined = (data.device || data);
