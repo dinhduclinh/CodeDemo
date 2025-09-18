@@ -1,7 +1,43 @@
 import Link from 'next/link';
 import Grid from '../components/Grid';
+import { useEffect, useState } from 'react';
+
+type Device = {
+  _id: string;
+  name: string;
+  type: string;
+  status: string;
+  location: string;
+};
+
 
 export default function Home() {
+
+
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const fetchDevices = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`http://localhost:3000/api/devices/`);
+        if (!res.ok) throw new Error(`Failed to fetch devices: ${res.status}`);
+        const data = await res.json();
+        const list: Device[] = data.devices || data || [];
+        setDevices(list);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        setError(message);
+      } finally {
+        setLoading(false);
+      };
+    };
+    fetchDevices();
+  }, []);
+
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Hero */}
@@ -78,26 +114,26 @@ export default function Home() {
         </div>
 
         <Grid>
-          {mockDevices.map((d) => (
-            <div key={d.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm group">
+          {devices.map((d) => (
+            <div key={d._id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm group">
               <div className="h-40 bg-slate-100" />
               <div className="p-4">
                 <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="text-sky-600 font-medium">{d.tag}</span>
-                  <span className="text-slate-500">{d.badge}</span>
+                  <span className="text-sky-600 font-medium">{d.type}</span>
+                  <span className="text-slate-500">{d.status}</span>
                 </div>
-                <h3 className="text-slate-900 font-semibold line-clamp-1">{d.title}</h3>
+                <h3 className="text-slate-900 font-semibold line-clamp-1">{d.name}</h3>
                 <div className="mt-2 text-slate-500 text-xs flex flex-wrap gap-x-4 gap-y-1">
-                  <span>Quản lý: {d.manager}</span>
-                  <span>Kho: {d.store}</span>
+                  <span>Quản lý: {d.location}</span>
+                  <span>Kho: {d.location}</span>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <div>
-                    <div className="text-slate-500 text-xs">Giá mỗi ngày</div>
-                    <div className="text-base font-bold text-slate-900">{d.price}</div>
+                    {/* <div className="text-slate-500 text-xs">Giá mỗi ngày</div>
+                    <div className="text-base font-bold text-slate-900">{d.price}</div> */}
                   </div>
                   <div className="flex gap-2">
-                    <Link href={`/devices/${d.id}`} className="px-3 py-2 text-sm bg-slate-100 hover:bg-slate-200 rounded-lg">Xem chi tiết</Link>
+                    <Link href={`/devices/${d._id}`} className="px-3 py-2 text-sm bg-slate-100 hover:bg-slate-200 rounded-lg text-black">Xem chi tiết</Link>
                     <button className="px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">Mượn ngay</button>
                   </div>
                 </div>
@@ -109,12 +145,3 @@ export default function Home() {
     </div>
   );
 }
-
-const mockDevices = [
-  { id: '1', tag: 'Đề xuất', badge: 'Có sẵn', title: 'MacBook Pro 16" M3 2024', manager: 'Quản trị K. Toán', store: 'Kho 2', price: '300,000đ' },
-  { id: '2', tag: 'Máy ảnh', badge: 'Còn hàng', title: 'Canon EOS R5 + Lens 24-70mm', manager: 'Quản trị K. CNTT', store: 'Kho 4', price: '500,000đ' },
-  { id: '3', tag: 'Điện thoại', badge: 'Có sẵn', title: 'iPhone 15 Pro Max 256GB', manager: 'Quản trị K. Điện', store: 'Kho 1', price: '150,000đ' },
-  { id: '4', tag: 'Âm thanh', badge: 'Có sẵn', title: 'Sony WH-1000XM5 Wireless', manager: 'Quản trị K. Điện tử', store: 'Kho 3', price: '50,000đ' },
-  { id: '5', tag: 'Máy tính bảng', badge: 'Còn hàng', title: 'iPad Pro 12.9" + Apple Pencil', manager: 'Quản trị K. Thiết kế', store: 'Kho 5', price: '200,000đ' },
-  { id: '6', tag: 'Thiết bị khác', badge: 'Có sẵn', title: 'PlayStation 5 + 2 Controllers', manager: 'Quản trị CLB', store: 'Kho 6', price: '100,000đ' },
-];

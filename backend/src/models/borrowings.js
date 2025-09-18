@@ -1,14 +1,14 @@
 const mongoose = require('mongoose');
 
 const borrowingSchema = new mongoose.Schema({
-    deviceId: {
+    device: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Device',
+        ref: 'Devices',
         required: true
     },
-    userId: {
+    user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Users',
         required: true
     },
     borrowDate: {
@@ -21,5 +21,5 @@ const borrowingSchema = new mongoose.Schema({
     }
 })
 
-const Borrowing = mongoose.model('Borrowing', borrowingSchema, 'borrowings');
+const Borrowing = mongoose.model('Borrowings', borrowingSchema, 'borrowings');
 module.exports = Borrowing;
