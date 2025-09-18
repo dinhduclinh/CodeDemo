@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-// Định nghĩa interface cho User
 interface User {
   id: string;
   name: string;
@@ -18,7 +17,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Kiểm tra user đã đăng nhập chưa
     const storedUser = localStorage.getItem("user");
     if (!storedUser) {
       router.push("/login");
@@ -27,8 +25,6 @@ const Dashboard = () => {
 
     try {
       const parsedUser = JSON.parse(storedUser) as User;
-
-      // Kiểm tra parsedUser có đầy đủ các trường cần thiết
       if (
         parsedUser &&
         parsedUser.id &&
@@ -49,14 +45,6 @@ const Dashboard = () => {
     }
   }, [router]);
 
-  const handleLogout = () => {
-    if (confirm("Bạn có chắc muốn đăng xuất?")) {
-      localStorage.removeItem("user");
-      setUser(null);
-      router.push("/login");
-    }
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -69,7 +57,6 @@ const Dashboard = () => {
     );
   }
 
-  // User không tồn tại
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -87,38 +74,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-sm text-gray-500">
-                Chào mừng bạn quay lại,{" "}
-                <span className="font-medium">{user.name}</span>
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  user.role === "admin"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-blue-100 text-blue-800"
-                }`}
-              >
-                {user.role === "admin" ? "Quản trị viên" : "Người dùng"}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-              >
-                Đăng xuất
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

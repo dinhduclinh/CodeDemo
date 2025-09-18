@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useAuth } from "../contexts/AuthContext";
 import { User } from "../types/user";
 
 interface AuthFormProps {
@@ -18,6 +19,7 @@ interface FormData {
 
 const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
   const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -27,7 +29,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [success, setSuccess] = useState<string>("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -38,6 +40,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
       if (type === "register") {
         if (!formData.name?.trim()) {
           setError("Vui lòng nhập họ tên");
+          setLoading(false);
+          return;
+        }
+        if (formData.name.trim().length < 2) {
+          setError("Họ tên phải có ít nhất 2 ký tự");
           setLoading(false);
           return;
         }
@@ -59,6 +66,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
         return;
       }
 
+      if (formData.password.length < 6) {
+        setError("Mật khẩu phải có ít nhất 6 ký tự");
+        setLoading(false);
+        return;
+      }
+
+      // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
         setError("Email không hợp lệ");
@@ -66,40 +80,47 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
         return;
       }
 
-      // Prepare request
+      // Prepare request body
       const requestBody =
         type === "register"
           ? {
               name: formData.name?.trim(),
-              email: formData.email.trim(),
+              email: formData.email.trim().toLowerCase(),
               password: formData.password,
             }
           : {
-              email: formData.email.trim(),
+              email: formData.email.trim().toLowerCase(),
               password: formData.password,
             };
 
+      // API endpoint
       const endpoint =
         type === "login"
           ? "http://localhost:9999/api/users/login"
           : "http://localhost:9999/api/users/register";
 
-      console.log(`[${type.toUpperCase()}] Calling:`, endpoint);
-      console.log(`[${type.toUpperCase()}] Body:`, requestBody);
+      console.log(`[${type.toUpperCase()}] Calling API:`, endpoint);
+      console.log(`[${type.toUpperCase()}] Request body:`, requestBody);
 
+      // Make API request
       const response = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
       console.log(`[${type.toUpperCase()}] Response:`, data);
 
+      // Handle API errors
       if (!response.ok) {
-        throw new Error(
-          data.message || `Lỗi ${type === "login" ? "đăng nhập" : "đăng ký"}`
-        );
+        const errorMessage =
+          data.message ||
+          data.error ||
+          `Lỗi ${type === "login" ? "đăng nhập" : "đăng ký"}`;
+        throw new Error(errorMessage);
       }
 
       if (!data.success) {
@@ -107,29 +128,44 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
       }
 
       if (!data.data) {
-        throw new Error("Không nhận được dữ liệu phản hồi");
+        throw new Error("Không nhận được dữ liệu người dùng từ server");
       }
 
-      // Validate response data
+      // Validate user data structure
       const userData: User = data.data;
-      if (!userData.id || !userData.name || !userData.email || !userData.role) {
-        throw new Error("Dữ liệu người dùng không hợp lệ");
+      if (
+        !userData.id ||
+        !userData.name ||
+        !userData.email ||
+        !userData.role ||
+        (userData.role !== "admin" && userData.role !== "user")
+      ) {
+        throw new Error("Dữ liệu người dùng không hợp lệ từ server");
       }
 
-      // Store user data
-      localStorage.setItem("user", JSON.stringify(userData));
+      // Call login through context (syncs all components immediately)
+      login(userData);
 
-      setSuccess(
-        type === "login" ? "Đăng nhập thành công!" : "Đăng ký thành công!"
-      );
+      // Show success message
+      const successMessage =
+        data.message ||
+        (type === "login" ? "Đăng nhập thành công!" : "Đăng ký thành công!");
+      setSuccess(successMessage);
 
-      // Redirect về home sau 1.5s
+      // Clear form
+      setFormData({
+        email: "",
+        password: "",
+        ...(type === "register" ? { name: "", confirmPassword: "" } : {}),
+      });
+
+      // Redirect to home after 1.5 seconds
       setTimeout(() => {
         router.push("/");
       }, 1500);
     } catch (err: any) {
       console.error(`[${type.toUpperCase()}] Error:`, err);
-      setError(err.message || "Có lỗi xảy ra");
+      setError(err.message || "Có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -146,21 +182,26 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
   const isRegister = type === "register";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+        {/* Header section */}
+        <div className="text-center space-y-2">
+          <h2 className="text-3xl font-bold text-gray-900">
             {isRegister ? "Tạo tài khoản mới" : "Đăng nhập tài khoản"}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="text-gray-600">
             {isRegister
               ? "Nhập thông tin để tạo tài khoản mới"
               : "Nhập thông tin để truy cập hệ thống"}
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {/* Name field cho register */}
+        {/* Form */}
+        <form
+          className="mt-8 space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-200"
+          onSubmit={handleSubmit}
+        >
+          {/* Name field for registration */}
           {isRegister && (
             <div>
               <label
@@ -175,8 +216,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
                 type="text"
                 required
                 minLength={2}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Nhập họ và tên"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors duration-200"
+                placeholder="Nhập họ và tên đầy đủ"
                 value={formData.name || ""}
                 onChange={handleChange}
               />
@@ -196,8 +237,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
               name="email"
               type="email"
               required
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-              placeholder="Nhập email"
+              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors duration-200"
+              placeholder="Nhập địa chỉ email"
               value={formData.email}
               onChange={handleChange}
             />
@@ -217,14 +258,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
               type="password"
               required
               minLength={6}
-              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+              className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors duration-200"
               placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
               value={formData.password}
               onChange={handleChange}
             />
           </div>
 
-          {/* Confirm password field cho register */}
+          {/* Confirm password field for registration */}
           {isRegister && (
             <div>
               <label
@@ -238,8 +279,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
                 name="confirmPassword"
                 type="password"
                 required
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Xác nhận mật khẩu"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors duration-200"
+                placeholder="Nhập lại mật khẩu"
                 value={formData.confirmPassword || ""}
                 onChange={handleChange}
               />
@@ -249,21 +290,53 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
           {/* Error message */}
           {error && (
             <div
-              className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative"
+              className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md relative"
               role="alert"
             >
-              <span className="block sm:inline">{error}</span>
+              <div className="flex items-center">
+                <svg
+                  className="w-5 h-5 text-red-400 mr-2 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="block sm:inline text-sm">{error}</span>
+              </div>
             </div>
           )}
 
           {/* Success message */}
           {success && (
             <div
-              className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded relative"
+              className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md relative"
               role="alert"
             >
-              <span className="block sm:inline">{success}</span>
-              <div className="mt-2 text-xs">Chuyển hướng trong 2 giây...</div>
+              <div className="flex items-center">
+                <svg
+                  className="w-5 h-5 text-green-400 mr-2 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <span className="block sm:inline text-sm font-medium">
+                    {success}
+                  </span>
+                  <div className="mt-1 text-xs text-green-700">
+                    Chuyển hướng trong 2 giây...
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -272,7 +345,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 ease-in-out"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 ease-in-out shadow-sm hover:shadow-md"
             >
               {loading ? (
                 <>
@@ -296,29 +369,61 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  {isRegister ? "Đang tạo..." : "Đang đăng nhập..."}
+                  <span>
+                    {isRegister ? "Đang tạo tài khoản..." : "Đang đăng nhập..."}
+                  </span>
                 </>
-              ) : isRegister ? (
-                "Đăng ký"
               ) : (
-                "Đăng nhập"
+                <span>{isRegister ? "Đăng ký" : "Đăng nhập"}</span>
               )}
             </button>
           </div>
 
-          {/* Switch link */}
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">hoặc</span>
+            </div>
+          </div>
+
+          {/* Switch authentication method */}
           <div className="text-center">
             <p className="text-sm text-gray-600">
               {isRegister ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
               <Link
                 href={isRegister ? "/login" : "/register"}
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors duration-200"
               >
                 {isRegister ? "Đăng nhập ngay" : "Đăng ký ngay"}
               </Link>
             </p>
           </div>
         </form>
+
+        {/* Footer nhỏ cho auth page */}
+        <div className="text-center text-xs text-gray-400 space-y-2 pt-6 border-t border-gray-200">
+          <p>
+            Bằng việc đăng ký, bạn đồng ý với{" "}
+            <Link
+              href="/terms"
+              className="text-indigo-600 hover:text-indigo-500"
+            >
+              Điều khoản dịch vụ
+            </Link>{" "}
+            và{" "}
+            <Link
+              href="/privacy"
+              className="text-indigo-600 hover:text-indigo-500"
+            >
+              Chính sách bảo mật
+            </Link>{" "}
+            của chúng tôi
+          </p>
+          <p>Demo Tech © 2025 - Hệ thống quản lý thiết bị</p>
+        </div>
       </div>
     </div>
   );
