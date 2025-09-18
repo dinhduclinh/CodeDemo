@@ -30,7 +30,7 @@ export default function BorrowingsPage() {
             try {
                 setLoading(true);
                 setError(null);
-                const res = await fetch(`http://localhost:3000/api/borrowings/`);
+                const res = await fetch(`http://localhost:9999/api/borrowings/`);
                 if (!res.ok) throw new Error(`Failed to fetch borrowings: ${res.status}`);
                 const data = await res.json();
                 const list: Borrowing[] = data.borrowings || data || [];

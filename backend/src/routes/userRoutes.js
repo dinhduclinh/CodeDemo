@@ -8,16 +8,14 @@ const {
   getUserById,
 } = require("../controller/users");
 
-// Public routes - BỎ /api prefix
-router.post("/register", registerUser); // ← /api/users/register
-router.post("/login", loginUser); // ← /api/users/login
+router.post("/register", registerUser); 
+router.post("/login", loginUser); 
 
 // Private routes
-router.get("/me", getMe); // ← /api/users/me
-router.get("/", getAllUsers); // ← /api/users (lấy tất cả)
-router.get("/:id", getUserById); // ← /api/users/:id
+router.get("/me", getMe); 
+router.get("/", getAllUsers); 
+router.get("/:id", getUserById); 
 
-// Test route để debug
 router.get("/test", (req, res) => {
   res.json({
     success: true,

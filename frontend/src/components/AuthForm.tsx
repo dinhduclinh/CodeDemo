@@ -81,23 +81,20 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
       }
 
       // Prepare request body
-      const requestBody =
-        type === "register"
-          ? {
-              name: formData.name?.trim(),
-              email: formData.email.trim().toLowerCase(),
-              password: formData.password,
-            }
-          : {
-              email: formData.email.trim().toLowerCase(),
-              password: formData.password,
-            };
+      const requestBody = type === "register"
+        ? {
+            name: formData.name?.trim(),
+            email: formData.email.trim().toLowerCase(),
+            password: formData.password,
+          }
+        : {
+            email: formData.email.trim().toLowerCase(),
+            password: formData.password,
+          };
 
-      // API endpoint
-      const endpoint =
-        type === "login"
-          ? "http://localhost:9999/api/users/login"
-          : "http://localhost:9999/api/users/register";
+      // ✅ FIX: Sử dụng Backend URL (port 9999) thay vì Next.js API routes
+      const baseURL = typeof window !== 'undefined' ? 'http://localhost:9999' : '';
+      const endpoint = `${baseURL}/api/users/${type}`;
 
       console.log(`[${type.toUpperCase()}] Calling API:`, endpoint);
       console.log(`[${type.toUpperCase()}] Request body:`, requestBody);
@@ -111,17 +108,27 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
         body: JSON.stringify(requestBody),
       });
 
-      const data = await response.json();
-      console.log(`[${type.toUpperCase()}] Response:`, data);
-
-      // Handle API errors
+      // ✅ FIX: Check response content type để debug
+      const contentType = response.headers.get('content-type');
+      console.log(`[${type.toUpperCase()}] Content-Type:`, contentType);
+      
       if (!response.ok) {
-        const errorMessage =
-          data.message ||
-          data.error ||
-          `Lỗi ${type === "login" ? "đăng nhập" : "đăng ký"}`;
+        const text = await response.text();
+        console.log(`[${type.toUpperCase()}] Response text:`, text);
+        
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        
+        const errorMessage = data.message || data.error || `Lỗi ${type === "login" ? "đăng nhập" : "đăng ký"} (${response.status})`;
         throw new Error(errorMessage);
       }
+
+      const data = await response.json();
+      console.log(`[${type.toUpperCase()}] Response:`, data);
 
       if (!data.success) {
         throw new Error(data.message || "Thao tác thất bại");
@@ -159,10 +166,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
         ...(type === "register" ? { name: "", confirmPassword: "" } : {}),
       });
 
-      // Redirect to home after 1.5 seconds
+      // Redirect to dashboard after 1.5 seconds
       setTimeout(() => {
         router.push("/");
       }, 1500);
+
     } catch (err: any) {
       console.error(`[${type.toUpperCase()}] Error:`, err);
       setError(err.message || "Có lỗi xảy ra. Vui lòng thử lại.");
@@ -171,7 +179,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -299,7 +307,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
-                  <path
+                                    <path
                     fillRule="evenodd"
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
                     clipRule="evenodd"
@@ -363,7 +371,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
                       stroke="currentColor"
                       strokeWidth="4"
                     ></circle>
-                    <path
+                                        <path
                       className="opacity-75"
                       fill="currentColor"
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
@@ -380,12 +388,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
           </div>
 
           {/* Divider */}
-          <div className="relative">
+          <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
+              <div className="w-full border-t border-gray-300"></div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">hoặc</span>
+            <div className="relative flex justify-center">
+              <span className="px-3 bg-white text-gray-500 text-sm">hoặc</span>
             </div>
           </div>
 
@@ -404,20 +412,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
         </form>
 
         {/* Footer nhỏ cho auth page */}
-        <div className="text-center text-xs text-gray-400 space-y-2 pt-6 border-t border-gray-200">
-          <p>
+        <div className="text-center text-xs text-gray-400 space-y-1 pt-6 border-t border-gray-200">
+          <p className="text-gray-500">
             Bằng việc đăng ký, bạn đồng ý với{" "}
-            <Link
-              href="/terms"
-              className="text-indigo-600 hover:text-indigo-500"
-            >
+            <Link href="/terms" className="text-indigo-600 hover:text-indigo-500">
               Điều khoản dịch vụ
             </Link>{" "}
             và{" "}
-            <Link
-              href="/privacy"
-              className="text-indigo-600 hover:text-indigo-500"
-            >
+            <Link href="/privacy" className="text-indigo-600 hover:text-indigo-500">
               Chính sách bảo mật
             </Link>{" "}
             của chúng tôi

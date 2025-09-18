@@ -1,8 +1,5 @@
-const { User } = require("../models/users");
+const User = require("../models/users");
 
-// @desc    Đăng ký user mới
-// @route   POST /api/users/register
-// @access  Public
 const registerUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -130,10 +127,6 @@ const loginUser = async (req, res) => {
     });
   }
 };
-
-// @desc    Lấy thông tin user hiện tại
-// @route   GET /api/users/me
-// @access  Private
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user?.id || req.query.userId);
@@ -186,9 +179,6 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-// @desc    Lấy user theo ID
-// @route   GET /api/users/:id
-// @access  Private
 const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
