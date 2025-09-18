@@ -6,16 +6,24 @@ const {
   getMe,
   getAllUsers,
   getUserById,
+  updateUser,
+  deleteUser,
 } = require("../controller/users");
 
-router.post("/register", registerUser); 
-router.post("/login", loginUser); 
+// Public routes
+router.post("/register", registerUser);
+router.post("/login", loginUser);
 
 // Private routes
-router.get("/me", getMe); 
-router.get("/", getAllUsers); 
-router.get("/:id", getUserById); 
+router.get("/me", getMe);
 
+// Admin routes
+router.get("/", getAllUsers);
+router.get("/:id", getUserById);
+router.put("/:id", updateUser);
+router.delete("/:id", deleteUser);
+
+// Test route
 router.get("/test", (req, res) => {
   res.json({
     success: true,
@@ -23,9 +31,11 @@ router.get("/test", (req, res) => {
     endpoints: {
       register: "POST /api/users/register",
       login: "POST /api/users/login",
-      me: "GET /api/users/me",
-      list: "GET /api/users",
-      getById: "GET /api/users/:id",
+      me: "GET /api/users/me?userId=xxx",
+      list: "GET /api/users (with x-user-role: admin header)",
+      getById: "GET /api/users/:id (with x-user-role: admin header)",
+      update: "PUT /api/users/:id (with x-user-role: admin header)",
+      delete: "DELETE /api/users/:id (with x-user-role: admin header)",
     },
   });
 });

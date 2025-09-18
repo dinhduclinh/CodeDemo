@@ -19,15 +19,14 @@ const navItems: NavItem[] = [
 export default function Header() {
   const router = useRouter();
   const { user, loading, logout } = useAuth();
-  const [showLogoutModal, setShowLogoutModal] = useState(false); // THÊM: modal state
-
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const activePath = useMemo(() => router.pathname, [router.pathname]);
 
   const authNavItems = user
     ? [
         ...navItems,
         ...(user.role === "admin"
-          ? [{ label: "Admin", href: "/admin/users" }]
+          ? [{ label: "Admin", href: "/admin" }]
           : []),
       ]
     : [{ label: "Home", href: "/" }];
