@@ -89,7 +89,7 @@ const AdminUsers: React.FC = () => {
         },
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({} as any));
+        const errorData = await response.json().catch(() => ({} as Record<string, unknown>));
         throw new Error(errorData.message || "Lỗi khi lấy danh sách users");
       }
       const data = await response.json();
@@ -105,8 +105,9 @@ const AdminUsers: React.FC = () => {
       } else {
         throw new Error(data.message || "Không thể lấy danh sách users");
       }
-    } catch (err: any) {
-      toast.error(err.message, {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra';
+      toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -166,7 +167,7 @@ const AdminUsers: React.FC = () => {
         },
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({} as any));
+        const errorData = await response.json().catch(() => ({} as Record<string, unknown>));
         throw new Error(errorData.message || "Lỗi khi lấy thông tin user");
       }
       const data = await response.json();
@@ -182,8 +183,9 @@ const AdminUsers: React.FC = () => {
       } else {
         throw new Error(data.message || "Không thể lấy thông tin user");
       }
-    } catch (err: any) {
-      toast.error(err.message, {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra';
+      toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -262,7 +264,7 @@ const AdminUsers: React.FC = () => {
         });
       }
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({} as any));
+        const errorData = await response.json().catch(() => ({} as Record<string, unknown>));
         throw new Error(errorData.message || "Lỗi khi lưu thông tin");
       }
       const data = await response.json();
@@ -281,8 +283,9 @@ const AdminUsers: React.FC = () => {
       } else {
         throw new Error(data.message || "Không thể lưu thông tin");
       }
-    } catch (err: any) {
-      toast.error(err.message, {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra';
+      toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -322,7 +325,7 @@ const AdminUsers: React.FC = () => {
         },
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({} as any));
+        const errorData = await response.json().catch(() => ({} as Record<string, unknown>));
         throw new Error(errorData.message || "Lỗi khi xóa user");
       }
       const data = await response.json();
@@ -341,8 +344,9 @@ const AdminUsers: React.FC = () => {
       } else {
         throw new Error(data.message || "Không thể xóa user");
       }
-    } catch (err: any) {
-      toast.error(err.message, {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra';
+      toast.error(errorMessage, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,

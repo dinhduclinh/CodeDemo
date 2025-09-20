@@ -46,11 +46,11 @@ module.exports.createDevice = async (req, res) => {
 
 module.exports.updateDevice = async (req, res) => {
     try {
-        const { name, type, status, location } = req.body;
-        if (!name || !type || !status || !location) {
+        const { name, type, location } = req.body;
+        if (!name || !type || !location) {
             return res.status(400).json({ code: 400, message: 'All fields are required' });
         }
-        const device = await Device.findByIdAndUpdate(req.params.id, { name, type, status, location }, { new: true });
+        const device = await Device.findByIdAndUpdate(req.params.id, { name, type, location }, { new: true });
         res.status(200).json({ code: 200, message: 'Device updated successfully', device });
     } catch (error) {
         res.status(500).json({ code: 500, message: 'Internal server error', error: error.message });
@@ -64,6 +64,17 @@ module.exports.deleteDevice = async (req, res) => {
             return res.status(400).json({ code: 400, message: 'Device not found' });
         }
         res.status(200).json({ code: 200, message: 'Device deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ code: 500, message: 'Internal server error', error: error.message });
+    }
+}
+
+module.exports.changeDeviceStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const device = await Device.findByIdAndUpdate(id, { status }, { new: true });
+        res.status(200).json({ code: 200, message: 'Device status changed successfully', device });
     } catch (error) {
         res.status(500).json({ code: 500, message: 'Internal server error', error: error.message });
     }

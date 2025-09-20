@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import Grid from '../../components/Grid';
+import Popup from '../../components/Popup';
 
 type Device = {
     _id: string;
@@ -12,12 +14,25 @@ type Device = {
 
 
 export default function DevicesPage() {
+    const { user } = useAuth();
     const [devices, setDevices] = useState<Device[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [nameFilter, setNameFilter] = useState<string>('all');
+    const [popup, setPopup] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        type: 'success' | 'error' | 'warning' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info'
+    });
+    const [borrowingDeviceId, setBorrowingDeviceId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchDevices = async () => {
@@ -56,6 +71,84 @@ export default function DevicesPage() {
             return matchesSearch && matchesStatus && matchesName;
         });
     }, [devices, searchQuery, statusFilter, nameFilter]);
+
+    const handleBorrowDevice = async (deviceId: string, deviceStatus: string) => {
+        if (!user) {
+            setPopup({
+                isOpen: true,
+                title: 'Chưa đăng nhập',
+                message: 'Vui lòng đăng nhập để mượn thiết bị.',
+                type: 'warning'
+            });
+            return;
+        }
+
+        if (deviceStatus === 'borrowed') {
+            setPopup({
+                isOpen: true,
+                title: 'Thiết bị đã được mượn',
+                message: 'Thiết bị này đã được mượn bởi người khác.',
+                type: 'error'
+            });
+            return;
+        }
+
+        try {
+            setBorrowingDeviceId(deviceId);
+            
+            const response = await fetch('http://localhost:9999/api/borrowings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    deviceId: deviceId,
+                    userId: user.id
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Cập nhật trạng thái thiết bị trong danh sách
+                setDevices(prevDevices => 
+                    prevDevices.map(device => 
+                        device._id === deviceId 
+                            ? { ...device, status: 'borrowed' }
+                            : device
+                    )
+                );
+
+                setPopup({
+                    isOpen: true,
+                    title: 'Mượn thiết bị thành công',
+                    message: `Bạn đã mượn thiết bị thành công. Mã mượn: ${data.borrowing._id.slice(-8)}`,
+                    type: 'success'
+                });
+            } else {
+                setPopup({
+                    isOpen: true,
+                    title: 'Lỗi mượn thiết bị',
+                    message: data.message || 'Có lỗi xảy ra khi mượn thiết bị.',
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error borrowing device:', error);
+            setPopup({
+                isOpen: true,
+                title: 'Lỗi mượn thiết bị',
+                message: 'Có lỗi xảy ra khi mượn thiết bị. Vui lòng thử lại.',
+                type: 'error'
+            });
+        } finally {
+            setBorrowingDeviceId(null);
+        }
+    };
+
+    const closePopup = () => {
+        setPopup(prev => ({ ...prev, isOpen: false }));
+    };
 
     return (
         <div className="min-h-screen bg-white">
@@ -132,7 +225,20 @@ export default function DevicesPage() {
                                         </div>
                                         <div className="flex gap-2">
                                             <Link href={`/devices/${d._id}`} className="px-3 py-2 text-sm bg-slate-100 hover:bg-slate-200 rounded-lg text-black">Xem chi tiết</Link>
-                                            <button className="px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">Mượn ngay</button>
+                                            <button 
+                                                onClick={() => handleBorrowDevice(d._id, d.status)}
+                                                disabled={d.status === 'borrowed' || borrowingDeviceId === d._id}
+                                                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                                                    d.status === 'borrowed' 
+                                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        : borrowingDeviceId === d._id
+                                                        ? 'bg-indigo-400 text-white cursor-wait'
+                                                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                                }`}
+                                            >
+                                                {borrowingDeviceId === d._id ? 'Đang mượn...' : 
+                                                 d.status === 'borrowed' ? 'Đã mượn' : 'Mượn ngay'}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -141,6 +247,15 @@ export default function DevicesPage() {
                     </Grid>
                 )}
             </section>
+            
+            {/* Popup Component */}
+            <Popup
+                isOpen={popup.isOpen}
+                onClose={closePopup}
+                title={popup.title}
+                message={popup.message}
+                type={popup.type}
+            />
         </div>
     );
 }

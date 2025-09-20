@@ -171,9 +171,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ type }) => {
         router.push("/");
       }, 1500);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(`[${type.toUpperCase()}] Error:`, err);
-      setError(err.message || "Có lỗi xảy ra. Vui lòng thử lại.");
+      const errorMessage = err instanceof Error ? err.message : "Có lỗi xảy ra. Vui lòng thử lại.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

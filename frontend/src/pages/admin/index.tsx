@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 
 const AdminDashboard: React.FC = () => {
-  const router = useRouter();
+  // const router = useRouter();
 
   const menuItems = [
     {
